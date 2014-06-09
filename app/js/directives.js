@@ -28,7 +28,8 @@ directives
           h = svg.node().offsetHeight;  
           
           svg.attr({
-            width: "100%"
+            width: "100%",
+            height: h
           });
           
           // Browser onresize event
