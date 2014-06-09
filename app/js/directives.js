@@ -6,39 +6,53 @@
 var directives = angular.module('myApp.directives', ['d3']);
 
 directives
-  .directive('d3test', ['d3Service', function(d3Service) {
+  .directive('d3test', ['d3Service', '$window', function(d3Service, $window) {
     return {
       restrict: 'EA',
-      scope: {},
+      scope: {
+        dataset: '='
+      },
       link: function(scope, element, attrs) {
         d3Service.d3().then(function(d3) {
-          //Width and height
-          var w = 600;
-          var h = 300;
-          var padding = 50;
+          var dataset = scope.dataset;
+        
+          var padding = parseInt(attrs.margin) || 50,
+          h = parseInt(attrs.height) || 300,
+          w = parseInt(attrs.width) || 600;
+
         
           var svg = d3.select(element[0])
             .append("svg");
             
-          function generateRandomNumber() {
-            var xRange = Math.random() * 25;	//Max range of new x values
-            return { key:keyCount++, value: Math.floor(Math.random() * xRange) + 1};
-          }
+          w = svg.node().offsetWidth;
+          h = svg.node().offsetHeight;  
+          
+          svg.attr({
+            width: "100%"
+          });
+          
+          // Browser onresize event
+          window.onresize = function() {
+            scope.$apply();
+          };
+          
+          // Watch for resize event
+          scope.$watch(function() {
+            return angular.element($window)[0].innerWidth;
+          }, function() {
+            scope.render(scope.data);
+          });
 
-          var keyCount = 0;
-
-          function generateRandomDataSet() {
-            var dataset = [];					//Initialize empty array
-            var numDataPoints = 20;				//Number of dummy data points to create
+          scope.render = function(data) {
+            w = svg.node().offsetWidth;
+            h = svg.node().offsetHeight;  
             
-            for (var i = 0; i < numDataPoints; i++) {					//Loop numDataPoints times
-              dataset.push(generateRandomNumber());					//Add new number to array
-            }
-            return dataset;
+            xScale
+            .rangeRoundBands([0, w - 2 * padding],  0.1);
+            
+            recomputePositions();
           }
-                      
-          var dataset = generateRandomDataSet();
-  
+
           var barPadding = 2;
           
           var key = function(d) { return d.key; }
@@ -67,12 +81,7 @@ directives
           var yAxis = d3.svg.axis()
             .scale(yScaleI)
             .orient("left");
-            
-          svg.attr({
-            height: h,
-            width: w,
-            });
-            
+
           var axis = svg.append("g")
             .attr("transform", "translate(" + padding + ",0)")
             .call(yAxis);
