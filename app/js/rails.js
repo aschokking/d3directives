@@ -23,26 +23,6 @@ for(var i = 0; i < edgeStrings.length; i++) {
   nodes[start].edges[end] = cost;
 }
 
-var Route = function(steps) {
-  this.currentCost = 0;
-  this.pendingSteps = steps;
-  this.currentNode = nodes[steps.pop()];
-}
-
-function calculateDistanceForRoute(route) {
-  while(route.pendingSteps.length > 0) {
-    var nextStep = route.pendingSteps.pop();
-    var cost = route.currentNode.edges[nextStep];
-    if(cost == null) {
-      route.currentCost = -1;
-      return;
-    } else {
-      route.currentCost += cost;
-      route.currentNode = nodes[nextStep];
-    }
-  }
-}
-
 var Walk = function(startNode) {
   this.walkedSteps = [startNode];
   this.distance = 0;
@@ -66,8 +46,15 @@ Walk.prototype.moveToNode = function(newNode) {
   return this;
 }
 
-function routeCalculator(nodeStart, recordCondition, stopCondition) {
-  var recordedWalks = []; // any successful walks of the graph
+Walk.prototype.reportDistance = function() {
+  if(isNaN(this.distance)) {
+    return "NO SUCH ROUTE";
+  } else {
+    return this.distance;
+  }
+}
+
+function routeCalculator(nodeStart, visitFn, shouldStopWalkTestFn) {
   var currentWalks = []; // current set of active (not stopped) walks
   
   currentWalks.push(new Walk(nodeStart)); // initialize with starting node
@@ -84,41 +71,44 @@ function routeCalculator(nodeStart, recordCondition, stopCondition) {
         var newWalk = walk.clone();
         newWalk.moveToNode(nodes[node]);
         
-        if(recordCondition(newWalk)) {
-          recordedWalks.push(newWalk);
-        }
+        visitFn(newWalk);
         
-        if(!stopCondition(newWalk, recordedWalks)) {
+        if(!shouldStopWalkTestFn(newWalk)) {
           newWalks.push(newWalk);
         }
       }
     }
     currentWalks = newWalks;
   }
-  
-  return recordedWalks;
 }
 
 var walk1 = new Walk(nodes['A']).moveToNode(nodes['B']).moveToNode(nodes['C']);
-console.log("Output #1: " + walk1.distance);
+console.log("Output #1: " + walk1.reportDistance());
 
 var walk2 = new Walk(nodes['A']).moveToNode(nodes['D']);
-console.log("Output #2: " + walk2.distance);
+console.log("Output #2: " + walk2.reportDistance());
 
 var walk3 = new Walk(nodes['A']).moveToNode(nodes['D']).moveToNode(nodes['C']);
-console.log("Output #3: " + walk3.distance);
+console.log("Output #3: " + walk3.reportDistance());
 
 var walk4 = new Walk(nodes['A'])
   .moveToNode(nodes['E'])
   .moveToNode(nodes['B'])
   .moveToNode(nodes['C'])
   .moveToNode(nodes['D']);
-console.log("Output #4: " + walk4.distance);
+console.log("Output #4: " + walk4.reportDistance());
+
+var walk5 = new Walk(nodes['A'])
+  .moveToNode(nodes['E'])
+  .moveToNode(nodes['D']);
+console.log("Output #5: " + walk5.reportDistance());
 
 var walks6 = [];
 routeCalculator(nodes['C'], 
   function(walk) { 
-    return walk.walkedSteps.length > 1 && walk.getCurrentNode() == nodes['C'];
+    if(walk.getCurrentNode() == nodes['C']) {
+      walks6.push(walk);
+    }
   }, 
   function(walk) 
   {
@@ -126,11 +116,13 @@ routeCalculator(nodes['C'],
   });
 console.log("Output #6: " + walks6.length);
 
-var walks7 = routeCalculator(nodes['A'], 
+var walks7 = [];
+routeCalculator(nodes['A'], 
   function(walk) { 
-    return walk.walkedSteps.length > 1 
-      && walk.getCurrentNode() == nodes['C']
-      && walk.walkedSteps.length == 5;
+    if(walk.getCurrentNode() == nodes['C']
+      && walk.walkedSteps.length == 5) {
+      walks7.push(walk);
+    }
   }, 
   function(walk) 
   {
@@ -138,18 +130,54 @@ var walks7 = routeCalculator(nodes['A'],
   });
 console.log("Output #7: " + walks7.length);
 
-var walks8 = routeCalculator(nodes['A'], 
+var walk8 = null;
+routeCalculator(nodes['A'], 
   function(walk) { 
-    return walk.walkedSteps.length > 1 
-      && walk.getCurrentNode() == nodes['C'];
-  }, 
-  function(walk, recordedWalks) 
-  {
-    for(var i = 0; i < recordedWalks.length; i++) {
-      if(recordedWalks[i].distance < walk.distance) {
-        return true; // stop if this walk is longer than a previous success
+    if(walk.getCurrentNode() == nodes['C']) {
+      if(walk8 == null 
+        || (walk8 != null && walk8.distance > walk.distance)) {
+        walk8 = walk;
       }
     }
-    return walk.walkedSteps.length > 5;
+  }, 
+  function(walk) 
+  {
+    if(walk8 != null && walk8.distance < walk.distance) {
+      return true; // stop if this walk is longer than a previous success
+    }
+    return false;
   });
-console.log("Output #8: " + walks8[0].distance);
+console.log("Output #8: " + walk8.reportDistance());
+
+var walk9 = null;
+routeCalculator(nodes['B'], 
+  function(walk) { 
+    if(walk.getCurrentNode() == nodes['B']) {
+      if(walk9 == null 
+        || (walk9 != null && walk9.distance > walk.distance)) {
+        walk9 = walk;
+      }
+    }
+  }, 
+  function(walk) 
+  {
+    if(walk9 != null && walk9.distance < walk.distance) {
+      return true; // stop if this walk is longer than a previous success
+    }
+    return false;
+  });
+console.log("Output #9: " + walk9.reportDistance());
+
+var walks10 = [];
+routeCalculator(nodes['C'], 
+  function(walk) { 
+    if(walk.getCurrentNode() == nodes['C']
+      && walk.distance < 30) {
+      walks10.push(walk);
+    }
+  }, 
+  function(walk) 
+  {
+    return walk.distance >= 30;
+  });
+console.log("Output #10: " + walks10.length);
