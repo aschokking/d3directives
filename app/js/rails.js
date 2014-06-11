@@ -8,19 +8,20 @@ var Node = function(label) {
   this.edges = {};
 };
 
-for(var i = 65; i < 70; i++) {
-  var node = new Node(String.fromCharCode(i));
-  nodes[node.label] = node;
-}
-
 var edgeStrings = input.split(', ');
 for(var i = 0; i < edgeStrings.length; i++) {
   var edgeString = edgeStrings[i];
   var start = edgeString[0];
   var end = edgeString[1];
-  var cost = parseInt(edgeString.slice(2));
+  var distance = parseInt(edgeString.slice(2));
   
-  nodes[start].edges[end] = cost;
+  if(nodes[start] == undefined) {
+    nodes[start] = new Node(start);
+  }
+  if(nodes[end] == undefined) {
+    nodes[end] = new Node(end);
+  }
+  nodes[start].edges[end] = {node: nodes[end], distance:distance};
 }
 
 var Walk = function(startNode) {
@@ -41,20 +42,32 @@ Walk.prototype.getCurrentNode = function() {
 
 Walk.prototype.moveToNode = function(newNode) {
   var currentNode = this.getCurrentNode();
-  this.distance += currentNode.edges[newNode.label];
+  var edge = currentNode.edges[newNode.label];
+  if(edge != undefined) {
+    this.distance += edge.distance;
+  } 
+  else {
+    this.distance = -1; // invalid route
+  }
   this.walkedSteps.push(newNode);
   return this;
 }
 
 Walk.prototype.reportDistance = function() {
-  if(isNaN(this.distance)) {
+  if(this.distance == -1) {
     return "NO SUCH ROUTE";
   } else {
     return this.distance;
   }
 }
 
-function routeCalculator(nodeStart, visitFn, shouldStopWalkTestFn) {
+/**
+ * Steps through every possible walk from a given starting node
+ * @nodeStart the beginning of the walks
+ * @visitFn function(walk) run on every walk that hasn't been stopped. This enables saving particular walks of interest.
+ * @shouldStopWalkTestFn function(walk) that returns false if no further steps from the given walk should be tried
+ */
+function nodeWalker(nodeStart, visitFn, shouldStopWalkTestFn) {
   var currentWalks = []; // current set of active (not stopped) walks
   
   currentWalks.push(new Walk(nodeStart)); // initialize with starting node
@@ -67,9 +80,9 @@ function routeCalculator(nodeStart, visitFn, shouldStopWalkTestFn) {
     for(var j = 0; j < currentWalks.length; j++) {
       var walk = currentWalks[j];
       var currentNode = walk.getCurrentNode();
-      for(var node in currentNode.edges) {
+      for(var nodeLabel in currentNode.edges) {
         var newWalk = walk.clone();
-        newWalk.moveToNode(nodes[node]);
+        newWalk.moveToNode(currentNode.edges[nodeLabel].node);
         
         visitFn(newWalk);
         
@@ -104,7 +117,7 @@ var walk5 = new Walk(nodes['A'])
 console.log("Output #5: " + walk5.reportDistance());
 
 var walks6 = [];
-routeCalculator(nodes['C'], 
+nodeWalker(nodes['C'], 
   function(walk) { 
     if(walk.getCurrentNode() == nodes['C']) {
       walks6.push(walk);
@@ -117,7 +130,7 @@ routeCalculator(nodes['C'],
 console.log("Output #6: " + walks6.length);
 
 var walks7 = [];
-routeCalculator(nodes['A'], 
+nodeWalker(nodes['A'], 
   function(walk) { 
     if(walk.getCurrentNode() == nodes['C']
       && walk.walkedSteps.length == 5) {
@@ -131,7 +144,7 @@ routeCalculator(nodes['A'],
 console.log("Output #7: " + walks7.length);
 
 var walk8 = null;
-routeCalculator(nodes['A'], 
+nodeWalker(nodes['A'], 
   function(walk) { 
     if(walk.getCurrentNode() == nodes['C']) {
       if(walk8 == null 
@@ -150,7 +163,7 @@ routeCalculator(nodes['A'],
 console.log("Output #8: " + walk8.reportDistance());
 
 var walk9 = null;
-routeCalculator(nodes['B'], 
+nodeWalker(nodes['B'], 
   function(walk) { 
     if(walk.getCurrentNode() == nodes['B']) {
       if(walk9 == null 
@@ -169,7 +182,7 @@ routeCalculator(nodes['B'],
 console.log("Output #9: " + walk9.reportDistance());
 
 var walks10 = [];
-routeCalculator(nodes['C'], 
+nodeWalker(nodes['C'], 
   function(walk) { 
     if(walk.getCurrentNode() == nodes['C']
       && walk.distance < 30) {
