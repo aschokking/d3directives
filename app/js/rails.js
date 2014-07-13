@@ -100,7 +100,8 @@ Walk.prototype.reportDistance = function() {
  * Steps through every possible walk from a given starting node
  * @param {Node} nodeStart the beginning of the walks
  * @param {function(Walk)} visitFn run on every walk that hasn't been stopped. This enables saving particular walks of interest.
- * @param {function(walk)} shouldStopWalkTestFn that returns false if no further steps from the given walk should be tried
+ * @param {function(walk)} shouldStopWalkTestFn that returns false if no further steps from the given walk should be tried. 
+ *    Required, or the nodeWalker will never finish.
  */
 function nodeWalker(nodeStart, visitFn, shouldStopWalkTestFn) {
   if(shouldStopWalkTestFn == null) {
@@ -120,6 +121,7 @@ function nodeWalker(nodeStart, visitFn, shouldStopWalkTestFn) {
       var walk = currentWalks[j];
       var currentNode = walk.getCurrentNode();
       for(var nodeLabel in currentNode.edges) {
+        // for each edge, clone the walk and add that edge's destination node to it
         var newWalk = walk.clone();
         newWalk.moveToNode(currentNode.edges[nodeLabel].node);
         
@@ -133,9 +135,12 @@ function nodeWalker(nodeStart, visitFn, shouldStopWalkTestFn) {
         }
       }
     }
+    // replace the currently active walks with any newWalks added during this pass
     currentWalks = newWalks;
   }
 }
+
+
 
 // run through the 10 set of tests on the given input string and output the results to the console
 
