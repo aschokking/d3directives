@@ -37,6 +37,7 @@ treeJSON = d3.json("small.json", function(error, treeData) {
           }
           return false;
       }).remove();
+      d3.select(this).attr('pointer-events', 'none');
     })
     .on("drag", function(d) {
       d.x0 += d3.event.dy;
@@ -52,9 +53,13 @@ treeJSON = d3.json("small.json", function(error, treeData) {
         if (index > -1) {
             draggingNode.parent.children.splice(index, 1);
         }
+        if(!selectedNode.children) {
+          selectedNode.children = [];
+        }
         selectedNode.children.push(draggingNode);
       }
       update();
+      d3.select(this).attr('pointer-events', 'auto');
     });
   
   // size of the diagram
@@ -86,6 +91,8 @@ treeJSON = d3.json("small.json", function(error, treeData) {
     .call(zoomListener)
     .append("svg:g");
     
+   var linksRoot = layoutRoot.append("svg:g");
+    
   var link = d3.svg.diagonal()
     .projection(function(d) {
       return [d.y, d.x];
@@ -115,7 +122,7 @@ treeJSON = d3.json("small.json", function(error, treeData) {
         d.y0 = d.y;
     });
     
-    var allPaths = layoutRoot.selectAll("path.link")
+    var allPaths = linksRoot.selectAll("path.link")
     .data(links);
     
     allPaths.enter()
@@ -139,12 +146,19 @@ treeJSON = d3.json("small.json", function(error, treeData) {
       .append("svg:g")
       .attr("class", "node");
       
-    // set drag behavior on leaves
-    allNodes.filter(function (d){
-      return d.depth == 2;
-    })
-    .call(dragBehavior);
-    
+    newNodes.append("circle")
+        .attr('class', 'ghostCircle')
+        .attr("r", 30)
+        .attr("opacity", 0.2) // change this to zero to hide the target area
+    .style("fill", "red")
+        .attr('pointer-events', 'mouseover')
+        .on("mouseover", function(node) {
+            overCircle(node);
+        })
+        .on("mouseout", function(node) {
+            outCircle(node);
+        }).call(dragBehavior);;
+
     newNodes.append("svg:circle")
       .attr("class", "node-dot")
       .attr("r", 4.5);
@@ -174,26 +188,24 @@ treeJSON = d3.json("small.json", function(error, treeData) {
       });
       
     // move drop targets 
-    allNodes.selectAll("circle.ghostCircle")
-    .remove();
+
       
     // set drag drop targets on middle nodes
-    allNodes.filter(function (d) {
-      return d.depth == 1;
+    layoutRoot.selectAll('.ghostCircle')
+      .data(nodes)
+      .attr('class', function(d) {
+        if(d.depth == 1) {
+          return 'ghostCircle show';
+        } else {
+          return 'ghostCircle'
+        }
+      });
+    
+    // set drag behavior on leaves
+    allNodes.filter(function (d){
+      return d.depth == 2;
     })
-    .append("circle")
-        .attr('class', 'ghostCircle')
-        .attr("r", 30)
-        .attr("opacity", 0.2) // change this to zero to hide the target area
-    .style("fill", "red")
-        .attr('pointer-events', 'mouseover')
-        .on("mouseover", function(node) {
-            overCircle(node);
-        })
-        .on("mouseout", function(node) {
-            outCircle(node);
-        });
-      
+    .call(dragBehavior);  
       
     // position nodes
     allNodes.attr("transform", function (d) {
