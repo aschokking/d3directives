@@ -1,5 +1,5 @@
 // Get JSON data
-treeJSON = d3.json("flare.json", function(error, treeData) {
+treeJSON = d3.json("small.json", function(error, treeData) {
   
   // used to set unique identifers on every node
   var i = 0;
@@ -54,6 +54,7 @@ treeJSON = d3.json("flare.json", function(error, treeData) {
         }
         selectedNode.children.push(draggingNode);
       }
+      update();
     });
   
   // size of the diagram
@@ -90,64 +91,115 @@ treeJSON = d3.json("flare.json", function(error, treeData) {
       return [d.y, d.x];
     });
   
-  // Set widths between levels based on maxLabelLength.
-  nodes.forEach(function(d) {
-    d.y = (d.depth * 250); //500px per level.
-  });
   
-  // Set node ids
-  node = layoutRoot.selectAll("g.node")
-    .data(nodes, function(d) {
-        return d.id || (d.id = ++i);
-    });
-  
-  // save positions for later
-  nodes.forEach(function(d) {
-      d.x0 = d.x;
-      d.y0 = d.y;
-  });
-  
-  layoutRoot.selectAll("path.link")
-    .data(links)
-    .enter()
-    .append("svg:path")
-    .attr("class", "link")
-    .attr("d", link);
     
-  var nodeGroup = layoutRoot.selectAll("g.node")
-    .data(nodes)
-    .enter()
-    .append("svg:g")
-    .attr("class", "node")
-    .attr("transform", function (d) {
-      return "translate(" + d.y + "," + d.x + ")";
+  function update() {
+    // Compute the new tree layout.
+    var nodes = tree.nodes(treeData),
+        links = tree.links(nodes);
+        
+    // Set widths between levels
+    nodes.forEach(function(d) {
+      d.y = (d.depth * 250);
     });
     
-  // set drag behavior on leaves
-  nodeGroup.filter(function (d){
-    return d.depth == 2;
-  })
-  .call(dragBehavior);
-  
-  // set drag drop targets on middle nodes
-  nodeGroup.filter(function (d) {
-    return d.depth == 1;
-  })
-  .append("circle")
-      .attr('class', 'ghostCircle')
-      .attr("r", 30)
-      .attr("opacity", 0.2) // change this to zero to hide the target area
-  .style("fill", "red")
-      .attr('pointer-events', 'mouseover')
-      .on("mouseover", function(node) {
-          overCircle(node);
-      })
-      .on("mouseout", function(node) {
-          outCircle(node);
+    // Set node ids
+    node = layoutRoot.selectAll("g.node")
+      .data(nodes, function(d) {
+          return d.id || (d.id = ++i);
       });
     
-  nodeGroup.append("svg:circle")
-    .attr("class", "node-dot")
-    .attr("r", 4.5);
+    // save positions for later
+    nodes.forEach(function(d) {
+        d.x0 = d.x;
+        d.y0 = d.y;
+    });
+    
+    var allPaths = layoutRoot.selectAll("path.link")
+    .data(links);
+    
+    allPaths.enter()
+    .append("svg:path")
+    .attr("class", "link");
+    
+    allPaths.exit()
+      .remove();
+    
+    allPaths.attr("d", link);
+    
+    var allNodes = layoutRoot.selectAll("g.node")
+      .data(nodes);
+    
+    var removedNodes = allNodes
+      .exit()
+      .remove();
+    
+    var newNodes = allNodes
+      .enter()
+      .append("svg:g")
+      .attr("class", "node");
       
+    // set drag behavior on leaves
+    allNodes.filter(function (d){
+      return d.depth == 2;
+    })
+    .call(dragBehavior);
+    
+    newNodes.append("svg:circle")
+      .attr("class", "node-dot")
+      .attr("r", 4.5);
+    
+    newNodes.append("svg:text")
+      .attr('class', 'nodeText')
+      .attr("dy", ".35em")
+      .style("fill-opacity", 1);
+      
+    var texts = layoutRoot.selectAll("text").data(nodes)
+      .text(function(d) {
+          return d.name;
+      })
+      .attr('x', function(d) {
+        if(d.depth == 2) {
+          return 10;
+        } else {
+          return -10;
+        }
+      })
+      .attr('y', function(d) {
+        if(d.depth <= 1) {
+          return -10;
+        } else {
+          return 0;
+        }
+      });
+      
+    // move drop targets 
+    allNodes.selectAll("circle.ghostCircle")
+    .remove();
+      
+    // set drag drop targets on middle nodes
+    allNodes.filter(function (d) {
+      return d.depth == 1;
+    })
+    .append("circle")
+        .attr('class', 'ghostCircle')
+        .attr("r", 30)
+        .attr("opacity", 0.2) // change this to zero to hide the target area
+    .style("fill", "red")
+        .attr('pointer-events', 'mouseover')
+        .on("mouseover", function(node) {
+            overCircle(node);
+        })
+        .on("mouseout", function(node) {
+            outCircle(node);
+        });
+      
+      
+    // position nodes
+    allNodes.attr("transform", function (d) {
+      return "translate(" + d.y + "," + d.x + ")";
+    })
+  }
+  
+  update();
 });
