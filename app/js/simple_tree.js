@@ -1,14 +1,41 @@
 // Get JSON data
 treeJSON = d3.json("flare.json", function(error, treeData) {
   
+  // used to set unique identifers on every node
+  var i = 0;
+  
   // Define the zoom function for the zoomable tree
   function zoom() {
       layoutRoot.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
   }
-
-
   // define the zoomListener which calls the zoom function on the "zoom" event constrained within the scaleExtents
   var zoomListener = d3.behavior.zoom().scaleExtent([0.1, 3]).on("zoom", zoom);
+      
+  // Define the drag listeners for drag/drop behaviour of nodes.
+  var dragBehavior = d3.behavior.drag()
+    .on("dragstart", function(d) {
+      d3.event.sourceEvent.stopPropagation();
+      var draggingNode = d;
+      var element = this;
+      
+      // remove parent link
+      var parentLink = tree.links(tree.nodes(draggingNode.parent));
+      layoutRoot.selectAll('path.link').filter(function(d, i) {
+          if (d.target.id == draggingNode.id) {
+              return true;
+          }
+          return false;
+      }).remove();
+    })
+    .on("drag", function(d) {
+      d.x0 += d3.event.dy;
+      d.y0 += d3.event.dx;
+      var node = d3.select(this);
+      node.attr("transform", "translate(" + d.y0 + "," + d.x0 + ")");
+    })
+    .on("dragend", function() {
+    
+    });
   
   // size of the diagram
   var viewerWidth = $(document).width();
@@ -49,6 +76,18 @@ treeJSON = d3.json("flare.json", function(error, treeData) {
     d.y = (d.depth * 250); //500px per level.
   });
   
+  // Set node ids
+  node = layoutRoot.selectAll("g.node")
+    .data(nodes, function(d) {
+        return d.id || (d.id = ++i);
+    });
+  
+  // save positions for later
+  nodes.forEach(function(d) {
+      d.x0 = d.x;
+      d.y0 = d.y;
+  });
+  
   layoutRoot.selectAll("path.link")
     .data(links)
     .enter()
@@ -65,9 +104,14 @@ treeJSON = d3.json("flare.json", function(error, treeData) {
       return "translate(" + d.y + "," + d.x + ")";
     });
     
+  // set drag behavior on leaves
+  nodeGroup.filter(function (d){
+    return d.depth == 2;
+  })
+  .call(dragBehavior);
+    
   nodeGroup.append("svg:circle")
     .attr("class", "node-dot")
     .attr("r", 4.5);
-    
-  
+      
 });
