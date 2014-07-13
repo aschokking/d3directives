@@ -4,6 +4,9 @@ treeJSON = d3.json("flare.json", function(error, treeData) {
   // used to set unique identifers on every node
   var i = 0;
   
+  // dragging state variables
+  var selectedNode = null;
+  
   // Define the zoom function for the zoomable tree
   function zoom() {
       layoutRoot.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
@@ -11,6 +14,14 @@ treeJSON = d3.json("flare.json", function(error, treeData) {
   // define the zoomListener which calls the zoom function on the "zoom" event constrained within the scaleExtents
   var zoomListener = d3.behavior.zoom().scaleExtent([0.1, 3]).on("zoom", zoom);
       
+      
+  var overCircle = function(d) {
+    selectedNode = d;
+  };
+  var outCircle = function(d) {
+    selectedNode = null;
+  };
+ 
   // Define the drag listeners for drag/drop behaviour of nodes.
   var dragBehavior = d3.behavior.drag()
     .on("dragstart", function(d) {
@@ -33,8 +44,16 @@ treeJSON = d3.json("flare.json", function(error, treeData) {
       var node = d3.select(this);
       node.attr("transform", "translate(" + d.y0 + "," + d.x0 + ")");
     })
-    .on("dragend", function() {
-    
+    .on("dragend", function(d) {
+      var draggingNode = d;
+      if(selectedNode) {
+        // reparent node to selected node
+        var index = draggingNode.parent.children.indexOf(draggingNode);
+        if (index > -1) {
+            draggingNode.parent.children.splice(index, 1);
+        }
+        selectedNode.children.push(draggingNode);
+      }
     });
   
   // size of the diagram
@@ -109,6 +128,23 @@ treeJSON = d3.json("flare.json", function(error, treeData) {
     return d.depth == 2;
   })
   .call(dragBehavior);
+  
+  // set drag drop targets on middle nodes
+  nodeGroup.filter(function (d) {
+    return d.depth == 1;
+  })
+  .append("circle")
+      .attr('class', 'ghostCircle')
+      .attr("r", 30)
+      .attr("opacity", 0.2) // change this to zero to hide the target area
+  .style("fill", "red")
+      .attr('pointer-events', 'mouseover')
+      .on("mouseover", function(node) {
+          overCircle(node);
+      })
+      .on("mouseout", function(node) {
+          outCircle(node);
+      });
     
   nodeGroup.append("svg:circle")
     .attr("class", "node-dot")
