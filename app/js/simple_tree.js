@@ -9,7 +9,7 @@ $.ajax({
   $(xml).find("category").each(function(cat) {
     data.children.push({
       name: $(this).attr("label"), 
-      id: $(this).attr("id"), 
+      pid: $(this).attr("id"), 
       children: []});
   });
   
@@ -23,8 +23,10 @@ $.ajax({
       var that = this;
       var parent = $(that).attr("parent");
       data.children.forEach(function(child) {
-        if(child.id == parent) {
-          child.children.push({name: $(that).attr("label")});
+        if(child.pid == parent) {
+          child.children.push({
+          name: $(that).attr("label"),
+          id: $(that).attr("id")});
         }
       });
     });
@@ -150,12 +152,6 @@ var createTree = function(treeData) {
       d.y = (d.depth * 250);
     });
     
-    // Set node ids
-    node = layoutRoot.selectAll("g.node")
-      .data(nodes, function(d) {
-        d.id = i++;
-      });
-    
     var allPaths = linksRoot.selectAll("path.link")
     .data(links);
     
@@ -262,16 +258,29 @@ var createTree = function(treeData) {
   }
   
   d3.select("#save").on("click", function() {
-    function visit(node) {
-      
-      var children = getChildren(node);
-      if(children) {
-        children.forEach(function(child) {
-          visit(child);
+    $.ajax({
+      url: "contexts.xml",
+      dataType: "xml",
+      cache: false
+    })
+    .done(function( xml ) {
+      $(xml).find("context").each(function(cat) {
+        var that = this;
+        var id = $(that).attr("id");
+        // find the node in the tree with said id
+        treeData.children.forEach(function(category) {
+          if(category.children) {
+            category.children.forEach(function(leaf) {
+              if(leaf.id === id) {
+                $(that).attr("parent", leaf.parent.pid);
+              }
+            });
+          }
         });
-      }
-    }
-    
+      });
+      var xmlString = (new XMLSerializer()).serializeToString(xml);
+      $("#output").text(xmlString);
+    });
   });
   
   update();
