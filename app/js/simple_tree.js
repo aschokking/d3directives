@@ -3,17 +3,34 @@ data = { name:"root", children: []};
 $.ajax({
   url: "parents.xml",
   dataType: "xml",
-  cache: false,
-  error: function(error, status, err) {
-    alert('error!');
-  }
+  cache: false
 })
 .done(function( xml ) {
   $(xml).find("category").each(function(cat) {
-    data.children.push({name: $(this).attr("label"), children: []});
+    data.children.push({
+      name: $(this).attr("label"), 
+      id: $(this).attr("id"), 
+      children: []});
   });
   
-  createTree(data);
+  $.ajax({
+    url: "contexts.xml",
+    dataType: "xml",
+    cache: false
+  })
+  .done(function( xml ) {
+    $(xml).find("context").each(function(cat) {
+      var that = this;
+      var parent = $(that).attr("parent");
+      data.children.forEach(function(child) {
+        if(child.id == parent) {
+          child.children.push({name: $(that).attr("label")});
+        }
+      });
+    });
+  
+    createTree(data);
+  });
 });
 
 // Get JSON data
@@ -21,6 +38,8 @@ var createTree = function(treeData) {
   
   // used to set unique identifers on every node
   var i = 0;
+  
+  var verticalSpacing = 30; // px
   
   // dragging state variables
   var selectedNode = null;
@@ -94,10 +113,10 @@ var createTree = function(treeData) {
   // computer number of child nodes
   var totalLeafs = 0;
   treeData.children.forEach(function(d) {
-    totalLeafs += d.children ? d.children.length : 0;
+    totalLeafs += (d.children && d.children.length > 1) ? d.children.length : 1;
   });
   
-  var viewHieght = totalLeafs * 25;
+  var viewHieght = totalLeafs * verticalSpacing;
   
   var tree = d3.layout.tree()
     .children(getChildren)
