@@ -1,5 +1,23 @@
+data = { name:"root", children: []};
+
+$.ajax({
+  url: "parents.xml",
+  dataType: "xml",
+  cache: false,
+  error: function(error, status, err) {
+    alert('error!');
+  }
+})
+.done(function( xml ) {
+  $(xml).find("category").each(function(cat) {
+    data.children.push({name: $(this).attr("label"), children: []});
+  });
+  
+  createTree(data);
+});
+
 // Get JSON data
-treeJSON = d3.json("small.json", function(error, treeData) {
+var createTree = function(treeData) {
   
   // used to set unique identifers on every node
   var i = 0;
@@ -230,4 +248,4 @@ treeJSON = d3.json("small.json", function(error, treeData) {
   });
   
   update();
-});
+}

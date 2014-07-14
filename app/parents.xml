@@ -1,4 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <parents>
 <category label="A" id="1"></category>
 <category label="B" id="2"></category>
-</parent>
+</parents>
