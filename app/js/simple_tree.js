@@ -261,7 +261,10 @@ var createTree = function(treeData) {
           d.children = [];
         }
         update();
-      });
+      }).filter(function(d) {
+        return d._children;
+      })
+      .classed("collapsed", true);
     
     // set drag behavior on leaves
     allNodes.filter(function (d){
@@ -299,7 +302,9 @@ var createTree = function(treeData) {
         var id = $(that).attr("id");
         // find the node in the tree with said id
         treeData.children.forEach(function(category) {
-          if(category.children) {
+          // in case any are collapsed, look through those nodes
+          var children = category._children ? category._children : category.children;
+          if(children) {
             category.children.forEach(function(leaf) {
               if(leaf.id === id) {
                 $(that).attr("parent", leaf.parent.pid);
