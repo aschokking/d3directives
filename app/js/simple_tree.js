@@ -153,26 +153,25 @@ var createTree = function(treeData) {
     // Set node ids
     node = layoutRoot.selectAll("g.node")
       .data(nodes, function(d) {
-          return d.id || (d.id = ++i);
+        d.id = i++;
       });
-    
-    // save positions for later
-    nodes.forEach(function(d) {
-        d.x0 = d.x;
-        d.y0 = d.y;
-    });
     
     var allPaths = linksRoot.selectAll("path.link")
     .data(links);
     
     allPaths.enter()
     .append("svg:path")
-    .attr("class", "link");
+    .attr("class", "link")
+    .attr("opacity", 0)
+    .transition()
+    .duration(500)
+    .attr("opacity", 1);
     
     allPaths.exit()
       .remove();
     
-    allPaths.attr("d", link);
+    allPaths
+      .attr("d", link);
     
     var allNodes = layoutRoot.selectAll("g.node")
       .data(nodes);
@@ -227,9 +226,6 @@ var createTree = function(treeData) {
         }
       });
       
-    // move drop targets 
-
-      
     // set drag drop targets on middle nodes
     layoutRoot.selectAll('.ghostCircle')
       .data(nodes)
@@ -248,9 +244,21 @@ var createTree = function(treeData) {
     .call(dragBehavior);  
       
     // position nodes
-    allNodes.attr("transform", function (d) {
-      return "translate(" + d.y + "," + d.x + ")";
-    })
+    allNodes
+      .attr("transform", function (d) {
+        return "translate(" + d.y0 + "," + d.x0 + ")";
+      })
+      .transition()
+      .duration(500)
+      .attr("transform", function (d) {
+        return "translate(" + d.y + "," + d.x + ")";
+      })
+      
+    // save positions for later
+    nodes.forEach(function(d) {
+        d.x0 = d.x;
+        d.y0 = d.y;
+    });
   }
   
   d3.select("#save").on("click", function() {
