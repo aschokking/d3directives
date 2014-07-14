@@ -1,32 +1,42 @@
 data = { name:"root", children: []};
 
 $.ajax({
-  url: "parents.xml",
+  url: "DisplayCategories.xml",
   dataType: "xml",
-  cache: false
+  error: function(err) {
+	alert(err);
+  }
 })
 .done(function( xml ) {
-  $(xml).find("category").each(function(cat) {
+  $(xml).find("displayCategory").each(function(cat) {
     data.children.push({
-      name: $(this).attr("label"), 
+      name: $(this).text(), 
       pid: $(this).attr("id"), 
       children: []});
   });
   
   $.ajax({
-    url: "contexts.xml",
+    url: "UIFContext.xml",
     dataType: "xml",
-    cache: false
+    error: function(err) {
+      alert(err);
+    }
   })
   .done(function( xml ) {
-    $(xml).find("context").each(function(cat) {
+    $(xml).find("uifContext").each(function(context) {
       var that = this;
-      var parent = $(that).attr("parent");
+      
+      var contextId = $(that).attr("id");
+      var label = $($(that).find("displayFeature")[0]).text();
+      
+      var parent = $($(that).find("displayCategoryId")[0]).text();
+      
+      // find the parent display category and add child
       data.children.forEach(function(child) {
         if(child.pid == parent) {
           child.children.push({
-          name: $(that).attr("label"),
-          id: $(that).attr("id")});
+          name: label,
+          id: contextId});
         }
       });
     });
