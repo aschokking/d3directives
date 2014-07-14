@@ -45,6 +45,7 @@ var createTree = function(treeData) {
   
   // dragging state variables
   var selectedNode = null;
+  var dragging = false;
   
   // Define the zoom function for the zoomable tree
   function zoom() {
@@ -67,6 +68,7 @@ var createTree = function(treeData) {
       if(d.depth != 2) {
         return;
       }
+      dragging = true;
       d3.event.sourceEvent.stopPropagation();
       var draggingNode = d;
       var element = this;
@@ -82,26 +84,31 @@ var createTree = function(treeData) {
       d3.select(this).attr('pointer-events', 'none');
     })
     .on("drag", function(d) {
-      d.x0 += d3.event.dy;
-      d.y0 += d3.event.dx;
-      var node = d3.select(this);
-      node.attr("transform", "translate(" + d.y0 + "," + d.x0 + ")");
+      if(dragging) {
+        d.x0 += d3.event.dy;
+        d.y0 += d3.event.dx;
+        var node = d3.select(this);
+        node.attr("transform", "translate(" + d.y0 + "," + d.x0 + ")");
+      }
     })
     .on("dragend", function(d) {
-      var draggingNode = d;
-      if(selectedNode) {
-        // reparent node to selected node
-        var index = draggingNode.parent.children.indexOf(draggingNode);
-        if (index > -1) {
-            draggingNode.parent.children.splice(index, 1);
+      if(dragging) {
+        var draggingNode = d;
+        if(selectedNode) {
+          // reparent node to selected node
+          var index = draggingNode.parent.children.indexOf(draggingNode);
+          if (index > -1) {
+              draggingNode.parent.children.splice(index, 1);
+          }
+          if(!selectedNode.children) {
+            selectedNode.children = [];
+          }
+          selectedNode.children.push(draggingNode);
         }
-        if(!selectedNode.children) {
-          selectedNode.children = [];
-        }
-        selectedNode.children.push(draggingNode);
+        update();
+        d3.select(this).attr('pointer-events', 'auto');
+        dragging = false;
       }
-      update();
-      d3.select(this).attr('pointer-events', 'auto');
     });
   
   // size of the diagram
@@ -203,6 +210,11 @@ var createTree = function(treeData) {
       .attr("dy", ".35em")
       .style("fill-opacity", 1);
       
+    newNodes.append("svg:circle")
+      .attr("class", "expansion")
+      .attr("r", 4.5)
+      .attr("transform", "translate(0, 10)");
+      
     var texts = layoutRoot.selectAll("text").data(nodes)
       .text(function(d) {
           return d.name;
@@ -233,6 +245,24 @@ var createTree = function(treeData) {
         }
       });
     
+    layoutRoot.selectAll('.expansion')
+      .data(nodes)
+      .attr("class", "expansion")
+      .filter(function(d) {
+        return d.depth === 1;
+      })
+      .attr("class", "expansion show")
+      .on("click", function(d) {
+        if(d._children) {
+          d.children = d._children;
+          delete d._children;
+        } else {
+          d._children = d.children;
+          d.children = [];
+        }
+        update();
+      });
+    
     // set drag behavior on leaves
     allNodes.filter(function (d){
       return d.depth == 2;
@@ -248,7 +278,7 @@ var createTree = function(treeData) {
       .duration(500)
       .attr("transform", function (d) {
         return "translate(" + d.y + "," + d.x + ")";
-      })
+      });
       
     // save positions for later
     nodes.forEach(function(d) {

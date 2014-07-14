@@ -6,7 +6,7 @@
     background-color: #EEE;
   }
   
-  .node circle {
+  .node-dot {
     fill: #fff;
     stroke: steelblue;
     stroke-width: 1.5px;
@@ -24,11 +24,20 @@
   }
   
   .ghostCircle.show{
-      display:block;
+    display:block;
   }
 
   .ghostCircle, .activeDrag {
-       display: none;
+     display: none;
+  }
+  
+  .expansion {
+    fill: green;
+    display: none;
+  }
+  
+  .expansion.show {
+    display:block;
   }
 
 </style>
