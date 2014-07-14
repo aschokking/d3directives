@@ -25,6 +25,9 @@ treeJSON = d3.json("small.json", function(error, treeData) {
   // Define the drag listeners for drag/drop behaviour of nodes.
   var dragBehavior = d3.behavior.drag()
     .on("dragstart", function(d) {
+      if(d.depth != 2) {
+        return;
+      }
       d3.event.sourceEvent.stopPropagation();
       var draggingNode = d;
       var element = this;
@@ -212,6 +215,19 @@ treeJSON = d3.json("small.json", function(error, treeData) {
       return "translate(" + d.y + "," + d.x + ")";
     })
   }
+  
+  d3.select("#save").on("click", function() {
+    function visit(node) {
+      
+      var children = getChildren(node);
+      if(children) {
+        children.forEach(function(child) {
+          visit(child);
+        });
+      }
+    }
+    
+  });
   
   update();
 });
