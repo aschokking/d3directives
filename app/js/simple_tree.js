@@ -302,29 +302,33 @@ var createTree = function(treeData) {
   
   d3.select("#save").on("click", function() {
     $.ajax({
-      url: "contexts.xml",
+      url: "UIFContext.xml",
       dataType: "xml",
-      cache: false
+      error: function(err) {
+        alert(err);
+      }
     })
     .done(function( xml ) {
-      $(xml).find("context").each(function(cat) {
+      $(xml).find("uifContext").each(function(context) {
         var that = this;
-        var id = $(that).attr("id");
-        // find the node in the tree with said id
+        
+        var contextId = $(that).attr("id");
+        
         treeData.children.forEach(function(category) {
           // in case any are collapsed, look through those nodes
           var children = category._children ? category._children : category.children;
           if(children) {
             category.children.forEach(function(leaf) {
-              if(leaf.id === id) {
-                $(that).attr("parent", leaf.parent.pid);
+              if(leaf.id === contextId) {
+                $($(that).find("displayCategoryId")[0]).text(leaf.parent.pid);
               }
             });
           }
         });
+        
+        var xmlString = (new XMLSerializer()).serializeToString(xml);
+        $("#output").text(xmlString); 
       });
-      var xmlString = (new XMLSerializer()).serializeToString(xml);
-      $("#output").text(xmlString);
     });
   });
   
