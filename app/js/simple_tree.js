@@ -1,4 +1,5 @@
-data = { name:"root", children: []};
+"use strict";
+var data = { name:"root", children: []};
 
 $.ajax({
   url: "DisplayCategories.xml",
@@ -52,6 +53,8 @@ var createTree = function(treeData) {
   var i = 0;
   
   var verticalSpacing = 30; // px
+  var panningBoundary = 50; // px
+  var panSpeed = 20; // px
   
   // dragging state variables
   var selectedNode = null;
@@ -95,6 +98,36 @@ var createTree = function(treeData) {
     })
     .on("drag", function(d) {
       if(dragging) {
+      
+        // get coords of mouseEvent relative to svg container to allow for panning
+        var svgHeight = $('svg').height();
+        var svgWidth = $('svg').width();
+        var relCoords = d3.mouse($('svg').get(0));
+        
+        var panning = false;
+        var current = zoomListener.translate();
+        var scale = zoomListener.scale();
+        console.log(relCoords);
+        if(relCoords[0] < panningBoundary) {
+          panning = true;
+          current[0] += panSpeed
+        } else if(relCoords[0] > svgWidth - panningBoundary) {
+          panning = true;
+          current[0] -= panSpeed
+        } else if (relCoords[1] < panningBoundary) {
+          panning = true;
+          current[1] += panSpeed
+        } else if (relCoords[1] > svgHeight - panningBoundary) {
+          panning = true;
+          current[1] -= panSpeed
+        }
+        if(panning) {
+          zoomListener.translate(current);
+          d3.select('g')
+            .attr("transform", "translate(" + current[0] + "," + current[1] + ")scale(" + scale + ")");
+        }
+        
+      
         d.x0 += d3.event.dy;
         d.y0 += d3.event.dx;
         var node = d3.select(this);
@@ -236,13 +269,15 @@ var createTree = function(treeData) {
           return -10;
         }
       })
-      .attr('y', function(d) {
-        if(d.depth <= 1) {
-          return -10;
-        } else {
-          return 0;
-        }
-      });
+      .classed("cat", false)
+      .attr("text-anchor", "start");
+      
+    texts
+      .filter(function(d) {
+        return d.depth != 2;
+      })
+      .classed("cat", true)
+      .attr("text-anchor", "end");
       
     // set drag drop targets on middle nodes
     layoutRoot.selectAll('.ghostCircle')
