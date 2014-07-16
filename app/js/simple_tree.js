@@ -4,7 +4,7 @@ var data = { name:"root", children: []};
 $.ajax({
   url: "DisplayCategories.xml",
   dataType: "xml",
-  error: function(err) {
+  error: function(err1, err2, err3) {
 	alert(err);
   }
 })
